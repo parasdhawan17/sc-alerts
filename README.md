@@ -4,14 +4,15 @@ Read Standard Chartered Singapore transaction alert emails from Gmail (`alerts.s
 
 ## What it does
 
-1. **Fetches alert emails** from Gmail — messages from `alerts.sg@sc.com`.
+1. **Fetches alert emails** from Gmail — messages from `alerts.sg@sc.com` (and DBS alerts).
 2. **Parses transaction details** — amount, currency, account, date/time, description, and debit/credit type when present.
 3. **Prints results** — human-readable output, raw email previews, or JSON.
+4. **Syncs to Google Sheets** — groups transactions by merchant per month and updates a spend-by-category breakdown.
 
 ## Prerequisites
 
 - Python 3.10+
-- A Google Cloud project with **Gmail API** enabled
+- A Google Cloud project with **Gmail API** and **Google Sheets API** enabled
 - OAuth 2.0 desktop credentials (`credentials.json`)
 
 ## Setup
@@ -30,12 +31,16 @@ pip install -r requirements.txt
 ```
 sc-alerts/
 ├── scripts/
-│   └── read_sc_transactions.py   # Main entry point
+│   ├── read_sc_transactions.py   # Read and print transactions
+│   ├── sync_current_month.py     # Sync current month to Google Sheets
+│   ├── sync_to_sheet.py          # Sync full year to Google Sheets
+│   └── update_categories.py      # Update category breakdowns in sheets
 ├── sc_alerts/
-│   ├── google_auth.py            # Gmail OAuth
+│   ├── google_auth.py            # Gmail / Sheets OAuth
 │   ├── gmail_sync.py             # Gmail search queries
 │   ├── email_utils.py            # Message decoding helpers
 │   ├── sc_parser.py              # Transaction email parser
+│   ├── sheet_manager.py          # Google Sheet writing and formatting
 │   └── paths.py
 ├── credentials.json              # local only (not in git)
 ├── token.json
@@ -63,6 +68,21 @@ python scripts/read_sc_transactions.py --raw --max-results 5
 # Parsed output as JSON
 python scripts/read_sc_transactions.py --json
 ```
+
+## Sync to Google Sheets
+
+```bash
+# Sync current month to the default spreadsheet
+python scripts/sync_current_month.py
+
+# Sync to a different spreadsheet
+python scripts/sync_current_month.py --spreadsheet-id YOUR_SHEET_ID
+
+# Preview what would be synced without writing
+python scripts/sync_current_month.py --dry-run
+```
+
+`sync_current_month.py` fetches all current-month transaction emails, parses them, groups them by merchant, and writes them to the current month's sheet tab. It also refreshes the spend-by-category breakdown and chart. Existing Include/Exclude choices and category overrides are preserved for merchants that are already in the sheet.
 
 ## Parser notes
 
