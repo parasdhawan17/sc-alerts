@@ -31,9 +31,10 @@ def get_credentials() -> Credentials:
                     "from Google Cloud Console (Desktop app) and save them here."
                 )
             flow = InstalledAppFlow.from_client_secrets_file(str(CREDENTIALS_FILE), SCOPES)
-            creds = flow.run_local_server(port=0)
+            creds = flow.run_local_server(port=0, timeout_seconds=180)
 
         TOKEN_FILE.write_text(creds.to_json())
+        TOKEN_FILE.chmod(0o600)
 
     return creds
 

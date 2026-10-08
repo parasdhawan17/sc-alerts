@@ -94,3 +94,61 @@ python scripts/sync_month.py --month 2026-09 --dry-run
 ## Parser notes
 
 SC alert emails can vary by transaction type (PayNow, FAST, card, ATM, etc.). The parser looks for common field labels and falls back to inline amount/currency detection. If some emails are not parsed, run with `--raw` to inspect the body format and update patterns in `sc_alerts/sc_parser.py`.
+
+## Native Mac app
+
+The SwiftUI app is a small, single-window monthly sync utility. Choose a calendar
+month and click **Sync [month]** (⌘Return). It refreshes the existing monthly tab,
+including category summaries and charts, while preserving merchant choices.
+No transactions means no sheet changes. The current month syncs alerts available
+so far; the app does not schedule syncs or expose the full-year command.
+
+### Build
+
+Requires macOS, Xcode Command Line Tools (or Xcode), Python 3.10+, and `uv`.
+The bundled app needs no separate Python installation. The checked-in dependency
+versions were verified using Python 3.14.6 on Apple Silicon; builds target the
+build machine's architecture. The frontend targets macOS 13+, but the bundled
+Python/runtime must also support the destination OS; this build was tested on
+macOS 27.2 only.
+
+```bash
+uv venv .venv
+uv pip install --python .venv/bin/python -r macos/requirements-build.txt
+macos/build.sh
+open "dist/SC Alerts.app"
+```
+
+If `.venv` already exists, keep it and run the install/build commands. Set
+`SC_ALERTS_BUILD_PYTHON` to use another build environment. The build script bundles
+the backend with PyInstaller, compiles SwiftUI, then ad-hoc signs and verifies
+`dist/SC Alerts.app`. You can move this app to Applications. It is a local build,
+not notarized for public distribution.
+
+### First use
+
+1. Open **Settings** (⌘,) and import your Google **Desktop app** OAuth JSON
+   credentials. Enable Gmail and Google Sheets APIs in that Google Cloud project.
+2. Confirm the destination spreadsheet ID. The existing project's spreadsheet is
+   prefilled. The connected Google account must have edit access to it.
+3. Click **Done**, choose the month/year, and click **Sync**. Google opens in your
+   browser when sign-in is required; finish sign-in within three minutes.
+4. Watch progress, then click **Open Google Sheet**. Failures remain visible and
+   allow retry. If a write failed, some updates may already have reached Sheets;
+   rerun the full month to refresh it.
+
+The app stores `credentials.json`, `token.json`, and `preferences.json` in
+`~/Library/Application Support/SC Alerts/`, outside the application bundle.
+Credentials and tokens are never bundled. Importing replacement credentials
+removes the app's old token so the next sync signs in again. Existing CLI scripts
+continue using the project-root credential and token files.
+
+### Verification
+
+```bash
+.venv/bin/python -m unittest discover -s tests -v
+```
+
+Tests use mocks and do not connect to Gmail or modify Sheets. Real write testing
+should use a separate test spreadsheet configured through Settings. Check a
+second sync retains merchant Include/Exclude and category overrides.

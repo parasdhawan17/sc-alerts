@@ -72,7 +72,7 @@ class SyncMonthTests(unittest.TestCase):
 
     def test_december_query_rolls_over_to_next_year(self):
         with (
-            patch.object(sync, "list_messages", return_value=[]) as messages,
+            patch("sc_alerts.month_sync.list_messages", return_value=[]) as messages,
             contextlib.redirect_stdout(io.StringIO()),
         ):
             sync.fetch_month_transactions(object(), date(2025, 12, 1))

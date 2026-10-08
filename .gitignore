@@ -1,6 +1,7 @@
 # --- Secrets & local config (never commit) ---
 credentials.json
 token.json
+token.json.*
 
 # --- Python ---
 __pycache__/
