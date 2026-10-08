@@ -32,7 +32,7 @@ pip install -r requirements.txt
 sc-alerts/
 ├── scripts/
 │   ├── read_sc_transactions.py   # Read and print transactions
-│   ├── sync_current_month.py     # Sync current month to Google Sheets
+│   ├── sync_month.py     # Sync a selected month (defaults to current month)
 │   ├── sync_to_sheet.py          # Sync full year to Google Sheets
 │   └── update_categories.py      # Update category breakdowns in sheets
 ├── sc_alerts/
@@ -73,16 +73,23 @@ python scripts/read_sc_transactions.py --json
 
 ```bash
 # Sync current month to the default spreadsheet
-python scripts/sync_current_month.py
+python scripts/sync_month.py
+
+# Sync any month using YYYY-MM
+python scripts/sync_month.py --month 2026-09
+python scripts/sync_month.py --month 2026-10
 
 # Sync to a different spreadsheet
-python scripts/sync_current_month.py --spreadsheet-id YOUR_SHEET_ID
+python scripts/sync_month.py --spreadsheet-id YOUR_SHEET_ID
 
 # Preview what would be synced without writing
-python scripts/sync_current_month.py --dry-run
+python scripts/sync_month.py --dry-run
+
+# Preview a selected month
+python scripts/sync_month.py --month 2026-09 --dry-run
 ```
 
-`sync_current_month.py` fetches all current-month transaction emails, parses them, groups them by merchant, and writes them to the current month's sheet tab. It also refreshes the spend-by-category breakdown and chart. Existing Include/Exclude choices and category overrides are preserved for merchants that are already in the sheet.
+`sync_month.py` accepts `--month YYYY-MM` for any year and month, or defaults to the current month when omitted. It fetches transaction emails for that month, parses them, keeps transactions dated in the selected month, groups them by merchant, and writes them to the matching sheet tab (for example, `Sep 2026`). Rerunning the command refreshes the tab without duplicating transactions. It also refreshes the spend-by-category breakdown and chart. Existing Include/Exclude choices and category overrides are preserved for merchants that are already in the sheet. Invalid month values are rejected before connecting to Google.
 
 ## Parser notes
 

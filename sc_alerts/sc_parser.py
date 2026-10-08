@@ -15,6 +15,17 @@ CHARGE_PATTERN = re.compile(
     re.IGNORECASE,
 )
 
+UNDATED_CHARGE_PATTERN = re.compile(
+    r"Thank you for charging \+?(SGD|USD|EUR|GBP|AUD|HKD|JPY|CNY|MYR)\s*([\d,]+\.?\d*)"
+    r"\s+to\s+(?:your|yr)\s+credit card\s+(\*+\d+|\d{4})"
+    r"\s+at\s+(.+?)\.\s",
+    re.IGNORECASE,
+)
+ALERT_TIMESTAMP_PATTERN = re.compile(
+    r"Alerts\s+([A-Za-z]+\s+\d{1,2}\s+\d{4}),\s*(\d{1,2}:\d{2}\s*(?:AM|PM))",
+    re.IGNORECASE,
+)
+
 NON_TRANSACTION_SUBJECTS = (
     "statement",
     "password",
@@ -64,12 +75,24 @@ def parse_sc_transaction(message: dict) -> Optional[dict]:
         return None
 
     match = CHARGE_PATTERN.search(search_text)
-    if not match:
-        return None
+    if match:
+        currency, amount_raw, date_raw, time_raw, card, merchant = match.groups()
+        transaction_date = _parse_transaction_date(date_raw)
+    else:
+        match = UNDATED_CHARGE_PATTERN.search(search_text)
+        alert_timestamp = ALERT_TIMESTAMP_PATTERN.search(search_text)
+        if not match or not alert_timestamp:
+            return None
+        currency, amount_raw, card, merchant = match.groups()
+        try:
+            transaction_date = datetime.strptime(alert_timestamp.group(1), "%B %d %Y")
+        except ValueError:
+            return None
+        time_raw = alert_timestamp.group(2)
+        if not card.startswith("*"):
+            card = f"****{card}"
 
-    currency, amount_raw, date_raw, time_raw, card, merchant = match.groups()
     amount = _parse_amount(amount_raw)
-    transaction_date = _parse_transaction_date(date_raw)
     if amount is None or transaction_date is None:
         return None
 
